@@ -1,103 +1,140 @@
-import Image from "next/image";
+"use client";
+import React, { useState, useEffect, useMemo } from 'react'
+import SearchFilter from '../components/v1/SearchFilter'
+import ProductCard from '../components/v1/ProductCard'
+import { getProductsWithAllData } from '../services/pocketbase/readProducts'
 
-export default function Home() {
+const Page = () => {
+  // State for all products (fetched once)
+  const [allProducts, setAllProducts] = useState([]);
+  // State for filtered products (displayed to user)
+  const [filteredProducts, setFilteredProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Fetch all products on component mount (only once)
+  useEffect(() => {
+    const fetchAllProducts = async () => {
+      try {
+        setLoading(true);
+        console.log('Fetching all products once...');
+        const result = await getProductsWithAllData(1, 100); // Increase limit as needed
+        setAllProducts(result.items);
+        setFilteredProducts(result.items); // Initially show all products
+        setLoading(false);
+      } catch (err) {
+        console.error('Error fetching products:', err);
+        setError('Failed to load products. Please try again later.');
+        setLoading(false);
+      }
+    };
+
+    fetchAllProducts();
+  }, []);
+
+  // Client-side search and filter function
+  const handleSearch = (query, filters) => {
+    console.log('Client-side search with:', {
+      query: query || '(empty)',
+      filters
+    });
+
+    // Force showing all products when search is empty and filters are default
+    if ((!query || query === '') && filters.price === 'All' && filters.category === 'All') {
+      console.log('No filters active, showing all products');
+      setFilteredProducts(allProducts);
+      return;
+    }
+
+    // Filter products based on search query and filters
+    const filtered = allProducts.filter(product => {
+      let matchesSearch = true;
+      let matchesPrice = true;
+      let matchesCategory = true;
+
+      // Filter by search query - only if there's actually a query
+      if (query && query !== '') {
+        matchesSearch = product.product_name?.toLowerCase().includes(query.toLowerCase());
+      }
+
+      // Filter by price range
+      if (filters.price !== 'All') {
+        const price = product.pricing?.final_price || product.pricing?.base_price || 0;
+
+        // Parse the price range
+        if (filters.price === '0-50') {
+          matchesPrice = price < 50;
+        } else if (filters.price === '50-100') {
+          matchesPrice = price >= 50 && price < 100;
+        } else if (filters.price === '100-200') {
+          matchesPrice = price >= 100 && price < 200;
+        } else if (filters.price === '200+') {
+          matchesPrice = price >= 200;
+        }
+      }
+
+      // Filter by category
+      if (filters.category !== 'All') {
+        // Convert from URL-friendly format (e.g., 'air-conditioners') to regular text if needed
+        const categoryValue = filters.category.replace(/-/g, ' ');
+
+        // Check if product matches the selected category
+        // Assuming product has a category attribute or we're using product type/model to determine category
+        matchesCategory =
+          product.brand?.toLowerCase().includes(categoryValue.toLowerCase()) ||
+          product.product_model?.toLowerCase().includes(categoryValue.toLowerCase());
+      }
+
+      // Product must match all active filters
+      return matchesSearch && matchesPrice && matchesCategory;
+    });
+
+    console.log(`Filtering complete: ${filtered.length} products match criteria`);
+    setFilteredProducts(filtered);
+  };
+
+  // Map PocketBase products to the format expected by ProductCard
+  const formatProduct = useMemo(() => (product) => {
+    return {
+      id: product.id,
+      name: product.product_name,
+      image: product.image ? `${process.env.NEXT_PUBLIC_POCKETBASE_URL}/api/files/products/${product.id}/${product.image}` : '/Images/sample_product.jpg',
+      price: product.pricing?.final_price || product.pricing?.base_price || 0,
+      stock: product.stock?.stock_quantity || 0,
+      currency: '$'
+    };
+  }, []);
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              app/page.js
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <div className="bg-[#EAEFF8] w-full h-full overflow-y-scroll">
+      <div className="px-96 py-4 gap-5 flex flex-col">
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+        {/* Search Filter */}
+        <SearchFilter onSearch={handleSearch} />
+
+        {/* Product Display Section */}
+        {loading ? (
+          <div className="flex justify-center items-center py-12">
+            <p className="text-gray-600">Loading products...</p>
+          </div>
+        ) : error ? (
+          <div className="flex justify-center items-center py-12">
+            <p className="text-red-500">{error}</p>
+          </div>
+        ) : filteredProducts.length === 0 ? (
+          <div className="flex justify-center items-center py-12">
+            <p className="text-gray-600">No products found. Try adjusting your search criteria.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-4 gap-6">
+            {filteredProducts.map(product => (
+              <ProductCard key={product.id} product={formatProduct(product)} />
+            ))}
+          </div>
+        )}
+      </div>
     </div>
-  );
+  )
 }
+
+export default Page
