@@ -123,10 +123,10 @@ export default function NavBar() {
                   <Link href="/cart" className="w-full">Cart</Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild className="cursor-pointer">
-                  <Link href="/orders" className="w-full">Orders</Link>
+                  <Link href="/order" className="w-full">Orders</Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild className="cursor-pointer">
-                  <Link href="/settings" className="w-full">Settings</Link>
+                  <Link href="/setting" className="w-full">Settings</Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={handleLogout}
