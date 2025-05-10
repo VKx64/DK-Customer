@@ -16,7 +16,7 @@ const ProductCard = ({ product }) => {
     image = '/Images/default-product.jpg',
     price = 699.99,
     stock = 15,
-    currency = '$'
+    currency = '₱'
   } = product || {};
 
   // States for handling cart interactions
@@ -51,7 +51,7 @@ const ProductCard = ({ product }) => {
     try {
       // Check if this product is already in the cart
       const existingCartItems = await pb.collection("user_cart").getList(1, 1, {
-        filter: `user.id = "${user.id}" && product.id = "${id}"`,
+        filter: `user="${user.id}" && product="${id}"`,
         requestKey: null // Prevent auto-cancellation
       });
 
@@ -116,7 +116,7 @@ const ProductCard = ({ product }) => {
 
           <div className="flex justify-between items-center">
             <div>
-              <p className="text-lg font-bold text-blue-600">{currency}{price.toLocaleString()}</p>
+              <p className="text-lg font-bold text-blue-600">₱{price.toLocaleString()}</p>
               <p className="text-sm text-gray-500">
                 {stock > 0 ? (
                   <span className={stock > 5 ? 'text-green-600' : 'text-orange-500'}>

@@ -64,7 +64,7 @@ const CartItem = ({
       <div className="flex-grow grid gap-1">
         <h3 className="font-medium text-sm md:text-base">{product.name}</h3>
         <div className="text-sm text-muted-foreground">
-          ${product.price.toFixed(2)} / item
+          ₱{product.price.toFixed(2)} / item
         </div>
         <div className="text-sm text-muted-foreground">
           Stock: {product.stock} available
@@ -100,7 +100,7 @@ const CartItem = ({
         </div>
 
         <div className="font-medium">
-          ${totalPrice.toFixed(2)}
+          ₱{totalPrice.toFixed(2)}
         </div>
 
         <Button

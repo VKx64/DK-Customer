@@ -104,7 +104,7 @@ const ProductDetailsDialog = ({ productId, isOpen, onClose }) => {
 
     try {
       const existingCartItems = await pb.collection("user_cart").getList(1, 1, {
-        filter: `user.id = "${user.id}" && product.id = "${productId}"`,
+        filter: `user="${user.id}" && product="${productId}"`,
         requestKey: null
       });
 
