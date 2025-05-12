@@ -99,6 +99,7 @@ export function AuthProvider({ children }) {
   // Contexts stored in browser
   const contextValue = {
     user,
+    setUser, // Add setUser to the context value
     login,
     logout,
     redirectUser,
