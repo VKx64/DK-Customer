@@ -3,23 +3,18 @@
 import React, { useEffect, useState } from "react";
 import { getCategories } from "@/services/pocketbase/readCategory";
 
-// Map category names to image paths
-const categoryImages = {
-  aircon: "/Images/simple_aircon.jpg",
-  "air ventilation": "/Images/simple_ventilator.jpg",
-  waifu: "/Images/default_user.jpg",
-  // Add more mappings as needed
-};
-
-const getImageUrl = (categoryName) =>
-  categoryImages[categoryName?.toLowerCase()] || "/Images/sample_product.jpg"; // fallback image
+const getImageUrl = (category) =>
+  category.imageUrl || "/Images/sample_product.jpg";
 
 const Page = () => {
   const [categories, setCategories] = useState([]);
 
   useEffect(() => {
     getCategories()
-      .then((data) => setCategories(data))
+      .then((data) => {
+        console.log(data);
+        setCategories(data);
+      })
       .catch((err) => console.error(err));
   }, []);
 
@@ -35,9 +30,12 @@ const Page = () => {
             >
               <div className="w-full h-48 bg-gray-100 flex items-center justify-center">
                 <img
-                  src={getImageUrl(category.name)}
+                  src={getImageUrl(category)}
                   alt={category.name}
                   className="object-contain h-full"
+                  onError={(e) => {
+                    e.target.src = "/Images/sample_product.jpg";
+                  }}
                 />
               </div>
               <div className="w-full p-4 flex justify-center">

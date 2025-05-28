@@ -1,27 +1,28 @@
 import { pb } from "../../lib/pocketbase";
 
-// 1. FUNCTION TO GET UNIQUE CATEGORIES FROM PRODUCTS
+const POCKETBASE_URL = "https://db-daikin.07130116.xyz";
+
 export async function getCategories() {
   try {
-    console.log("Fetching all product categories...");
-    // Fetch all products, only requesting the 'category' field
     const records = await pb.collection("products").getFullList({
-      fields: "category",
-      requestKey: null, // Prevent auto cancellation errors
+      fields: "id,category,image",
+      requestKey: null,
     });
 
-    // Extract unique categories
-    const categories = [
-      ...new Set(records.map((record) => record.category).filter(Boolean)),
-    ];
+    const categoryMap = {};
+    records.forEach((record) => {
+      if (record.category && !categoryMap[record.category]) {
+        const imageUrl = record.image
+          ? `${POCKETBASE_URL}/api/files/products/${record.id}/${record.image}`
+          : null;
+        categoryMap[record.category] = imageUrl;
+      }
+    });
 
-    // Log the found categories
-    console.log(`Found ${categories.length} unique categories:`, categories);
-
-    // Return as array of objects for easier mapping in React
-    return categories.map((cat, idx) => ({
+    return Object.entries(categoryMap).map(([cat, image], idx) => ({
       id: idx,
       name: cat,
+      imageUrl: image,
     }));
   } catch (error) {
     console.error("Error fetching categories:", error);
