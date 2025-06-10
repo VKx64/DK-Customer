@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
-    domains: ['db-daikin.07130116.xyz', 'zxky'],
+    domains: ["dk-pb.07130116.xyz", "zxky"],
   },
 };
 
