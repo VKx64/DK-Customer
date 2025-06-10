@@ -2,7 +2,7 @@
 const nextConfig = {
   output: 'standalone',
   images: {
-    domains: ['db-daikin.07130116.xyz'],
+    domains: ["dk-pb.07130116.xyz", "zxky"],
   },
 };
 

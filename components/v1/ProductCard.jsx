@@ -1,22 +1,22 @@
-import React, { useState } from 'react';
-import Image from 'next/image';
-import { Button } from '../ui/button';
-import { ShoppingCart, Eye, CheckCircle, Loader2 } from 'lucide-react';
-import { pb } from '@/lib/pocketbase';
-import { useAuth } from '@/contexts/AuthContext';
-import { useRouter } from 'next/navigation';
-import { toast } from 'sonner';
-import ProductDetailsDialog from './product/ProductDetailsDialog';
+import React, { useState } from "react";
+import Image from "next/image";
+import { Button } from "../ui/button";
+import { ShoppingCart, Eye, CheckCircle, Loader2 } from "lucide-react";
+import { pb } from "@/lib/pocketbase";
+import { useAuth } from "@/contexts/AuthContext";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import ProductDetailsDialog from "./product/ProductDetailsDialog";
 
 const ProductCard = ({ product }) => {
   // Default product data if none provided
   const {
-    id = '1',
-    name = 'Daikin Stylish Series AC',
-    image = '/Images/default-product.jpg',
+    id = "1",
+    name = "Daikin Stylish Series AC",
+    image = "/Images/default-product.jpg",
     price = 699.99,
     stock = 15,
-    currency = '₱'
+    currency = "₱",
   } = product || {};
 
   // States for handling cart interactions
@@ -41,7 +41,7 @@ const ProductCard = ({ product }) => {
     // If user is not logged in, redirect to authentication page
     if (!user) {
       toast.error("Please log in to add items to your cart");
-      router.push('/authentication');
+      router.push("/authentication");
       return;
     }
 
@@ -52,7 +52,7 @@ const ProductCard = ({ product }) => {
       // Check if this product is already in the cart
       const existingCartItems = await pb.collection("user_cart").getList(1, 1, {
         filter: `user="${user.id}" && product="${id}"`,
-        requestKey: null // Prevent auto-cancellation
+        requestKey: null, // Prevent auto-cancellation
       });
 
       if (existingCartItems.items.length > 0) {
@@ -60,28 +60,34 @@ const ProductCard = ({ product }) => {
         const existingItem = existingCartItems.items[0];
         const newQuantity = existingItem.quantity + 1;
 
-        await pb.collection("user_cart").update(existingItem.id, {
-          quantity: newQuantity
-        }, {
-          requestKey: null // Prevent auto-cancellation
-        });
+        await pb.collection("user_cart").update(
+          existingItem.id,
+          {
+            quantity: newQuantity,
+          },
+          {
+            requestKey: null, // Prevent auto-cancellation
+          }
+        );
         toast.success("Item quantity updated in cart");
       } else {
         // If item doesn't exist, create new cart item
-        await pb.collection("user_cart").create({
-          product: id,  // Product ID relation
-          user: user.id, // User ID relation
-          quantity: 1    // Default quantity
-        }, {
-          requestKey: null // Prevent auto-cancellation
-        });
+        await pb.collection("user_cart").create(
+          {
+            product: id, // Product ID relation
+            user: user.id, // User ID relation
+            quantity: 1, // Default quantity
+          },
+          {
+            requestKey: null, // Prevent auto-cancellation
+          }
+        );
         toast.success("Item added to cart");
       }
 
       // Show success state
       setIsAddedToCart(true);
       setTimeout(() => setIsAddedToCart(false), 2000); // Reset after 2 seconds
-
     } catch (error) {
       console.error("Error adding to cart:", error);
       toast.error("Failed to add item to cart");
@@ -112,15 +118,22 @@ const ProductCard = ({ product }) => {
 
         {/* Product Info */}
         <div className="p-4 space-y-2">
-          <h3 className="font-medium text-gray-900 whitespace-nowrap overflow-hidden text-ellipsis">{name}</h3>
+          <h3 className="font-medium text-gray-900 whitespace-nowrap overflow-hidden text-ellipsis">
+            {name}
+          </h3>
 
           <div className="flex justify-between items-center">
             <div>
-              <p className="text-lg font-bold text-blue-600">₱{price.toLocaleString()}</p>
+              <p className="text-lg font-bold text-blue-600">
+                {price.toLocaleString()}
+              </p>
               <p className="text-sm text-gray-500">
                 {stock > 0 ? (
-                  <span className={stock > 5 ? 'text-green-600' : 'text-orange-500'}>
-                    {stock > 5 ? 'In Stock' : 'Low Stock'} <span className="text-gray-400">({stock} left)</span>
+                  <span
+                    className={stock > 5 ? "text-green-600" : "text-orange-500"}
+                  >
+                    {stock > 5 ? "In Stock" : "Low Stock"}{" "}
+                    <span className="text-gray-400">({stock} left)</span>
                   </span>
                 ) : (
                   <span className="text-red-500">Out of Stock</span>
