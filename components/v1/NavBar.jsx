@@ -16,7 +16,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, ShoppingCart } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
 export default function NavBar() {
@@ -89,10 +89,8 @@ export default function NavBar() {
               </NavigationMenuItem>
             </NavigationMenuList>
           </NavigationMenu>
-        </div>
-
-        {/* User dropdown on right */}
-        <div className="ml-auto flex items-center">
+        </div>        {/* User dropdown on right */}
+        <div className="ml-auto flex items-center gap-3">
           {isUserLoading ? (
             // Loading state
             <div className="flex items-center gap-2 px-3 py-2">
@@ -103,51 +101,65 @@ export default function NavBar() {
             </div>
           ) : user ? (
             // Authenticated state
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button className="flex items-center gap-2 px-3 py-2 rounded-md hover:bg-accent transition-colors focus:outline-none">
-                  <Avatar className="h-8 w-8">
-                    <AvatarImage
-                      src={getAvatarSrc()}
-                      alt={user.name || "User"}
-                    />
-                    <AvatarFallback>{getUserInitials()}</AvatarFallback>
-                  </Avatar>
-                  <span className="text-sm font-medium">
-                    {user.name || user.email}
+            <>
+              {/* Cart Icon */}
+              <Link href="/cart">
+                <button className="relative flex items-center justify-center p-2 rounded-md hover:bg-accent transition-colors focus:outline-none">
+                  <ShoppingCart className="h-6 w-6" />
+                  {/* Badge placeholder - you can add cart count logic here */}
+                  <span className="absolute -top-1 -right-1 h-4 w-4 bg-primary text-primary-foreground text-xs rounded-full flex items-center justify-center">
+                    0
                   </span>
-                  <ChevronDown className="h-4 w-4 opacity-50" />
                 </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuItem asChild className="cursor-pointer">
-                  <Link href="/profile" className="w-full">
-                    Profile
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild className="cursor-pointer">
-                  <Link href="/cart" className="w-full">
-                    Cart
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild className="cursor-pointer">
-                  <Link href="/order" className="w-full">
-                    Orders
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild className="cursor-pointer">
-                  <Link href="/setting" className="w-full">
-                    Settings
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={handleLogout}
-                  className="cursor-pointer text-destructive focus:text-destructive"
-                >
-                  Logout
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+              </Link>
+
+              {/* User Dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="flex items-center gap-2 px-3 py-2 rounded-md hover:bg-accent transition-colors focus:outline-none">
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage
+                        src={getAvatarSrc()}
+                        alt={user.name || "User"}
+                      />
+                      <AvatarFallback>{getUserInitials()}</AvatarFallback>
+                    </Avatar>
+                    <span className="text-sm font-medium">
+                      {user.name || user.email}
+                    </span>
+                    <ChevronDown className="h-4 w-4 opacity-50" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuItem asChild className="cursor-pointer">
+                    <Link href="/profile" className="w-full">
+                      Profile
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild className="cursor-pointer">
+                    <Link href="/cart" className="w-full">
+                      Cart
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild className="cursor-pointer">
+                    <Link href="/order" className="w-full">
+                      Orders
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild className="cursor-pointer">
+                    <Link href="/setting" className="w-full">
+                      Settings
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={handleLogout}
+                    className="cursor-pointer text-destructive focus:text-destructive"
+                  >
+                    Logout
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </>
           ) : (
             // Not authenticated state
             <Link
