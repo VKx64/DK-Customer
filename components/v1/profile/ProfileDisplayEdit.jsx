@@ -104,24 +104,31 @@ const ProfileDisplayEdit = ({ user }) => {
   const avatarSrc = avatarPreview || getAvatarUrl(user, user.avatar);
 
   return (
-    <Card className="w-full max-w-2xl mx-auto shadow-lg">
-      <CardHeader className="text-center">
-        <CardTitle className="text-2xl font-semibold text-gray-700">
-          {isEditing ? 'Edit Your Profile' : 'Profile Details'}
+    <Card className="w-full shadow-lg border-0 bg-white">
+      <CardHeader className="text-center pb-6">
+        <CardTitle className="text-2xl font-bold text-gray-800">
+          {isEditing ? 'Edit Your Profile' : 'My Profile'}
         </CardTitle>
-        {!isEditing && <CardDescription>View or update your personal information.</CardDescription>}
+        {!isEditing && <CardDescription className="text-gray-600 mt-2">Manage your personal information and preferences</CardDescription>}
       </CardHeader>
       <CardContent className="space-y-6 p-6">
         <div className="flex flex-col items-center space-y-4">
-          <Avatar className="w-32 h-32 border-4 border-gray-200 shadow-md">
-            <AvatarImage src={avatarSrc} alt={user.name || 'User'} />
-            <AvatarFallback className="bg-gray-300">
-              <UserIcon className="w-16 h-16 text-gray-500" />
-            </AvatarFallback>
-          </Avatar>
+          <div className="relative">
+            <Avatar className="w-28 h-28 border-4 border-white shadow-lg ring-4 ring-blue-100">
+              <AvatarImage src={avatarSrc} alt={user.name || 'User'} className="object-cover" />
+              <AvatarFallback className="bg-gradient-to-br from-blue-400 to-purple-500 text-white text-2xl">
+                <UserIcon className="w-12 h-12" />
+              </AvatarFallback>
+            </Avatar>
+            {!isEditing && (
+              <div className="absolute -bottom-2 -right-2 w-6 h-6 bg-green-500 border-2 border-white rounded-full flex items-center justify-center">
+                <div className="w-2 h-2 bg-white rounded-full"></div>
+              </div>
+            )}
+          </div>
           {isEditing && (
             <>
-              <Button variant="outline" onClick={triggerAvatarUpload} className="text-sm">
+              <Button variant="outline" onClick={triggerAvatarUpload} className="text-sm bg-white hover:bg-gray-50">
                 Change Avatar
               </Button>
               <Input
@@ -137,21 +144,62 @@ const ProfileDisplayEdit = ({ user }) => {
         </div>
 
         {!isEditing ? (
-          <div className="space-y-4 text-center">
-            <div>
-              <Label htmlFor="displayName" className="text-sm font-medium text-gray-500">Name</Label>
-              <p id="displayName" className="text-xl font-semibold text-gray-800">{user.name || 'Not set'}</p>
+          <div className="space-y-6">
+            {/* Main Profile Info */}
+            <div className="text-center space-y-2">
+              <h2 className="text-3xl font-bold text-gray-900">{user.name || 'Welcome!'}</h2>
+              <p className="text-lg text-gray-600">{user.email}</p>
+              {user.username && (
+                <p className="text-md text-gray-500">@{user.username}</p>
+              )}
             </div>
-            <div>
-              <Label htmlFor="displayEmail" className="text-sm font-medium text-gray-500">Email</Label>
-              <p id="displayEmail" className="text-lg text-gray-700">{user.email}</p>
-            </div>
-             {user.username && (
-                <div>
-                    <Label htmlFor="displayUsername" className="text-sm font-medium text-gray-500">Username</Label>
-                    <p id="displayUsername" className="text-lg text-gray-700">{user.username}</p>
+
+            {/* Profile Stats Grid */}
+            <div className="grid grid-cols-2 gap-4 pt-4 border-t">
+              <div className="text-center p-4 bg-blue-50 rounded-lg">
+                <div className="flex items-center justify-center mb-2">
+                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
                 </div>
-            )}
+                <p className="text-sm font-medium text-gray-600">Account Status</p>
+                <p className="text-lg font-semibold text-gray-900">
+                  {user.verified ? 'Verified' : 'Pending'}
+                </p>
+              </div>
+              <div className="text-center p-4 bg-purple-50 rounded-lg">
+                <div className="flex items-center justify-center mb-2">
+                  <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
+                </div>
+                <p className="text-sm font-medium text-gray-600">Member Since</p>
+                <p className="text-lg font-semibold text-gray-900">
+                  {new Date(user.created).getFullYear()}
+                </p>
+              </div>
+            </div>
+
+            {/* Additional Info */}
+            <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+              <h3 className="font-semibold text-gray-800">Account Information</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Role:</span>
+                  <span className="font-medium capitalize">{user.role || 'Customer'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Email Visibility:</span>
+                  <span className="font-medium">{user.emailVisibility ? 'Public' : 'Private'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Last Updated:</span>
+                  <span className="font-medium">{new Date(user.updated).toLocaleDateString()}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Verification:</span>
+                  <span className={`font-medium ${user.verified ? 'text-green-600' : 'text-orange-600'}`}>
+                    {user.verified ? 'Verified' : 'Unverified'}
+                  </span>
+                </div>
+              </div>
+            </div>
           </div>
         ) : (
           <form onSubmit={(e) => { e.preventDefault(); handleSave(); }} className="space-y-6">
@@ -192,7 +240,7 @@ const ProfileDisplayEdit = ({ user }) => {
           </form>
         )}
       </CardContent>
-      <CardFooter className="flex justify-end space-x-3 p-6 bg-gray-50">
+      <CardFooter className="flex justify-end space-x-3 p-6 bg-gray-50 border-t">
         {isEditing ? (
           <>
             <Button variant="outline" onClick={handleCancel} disabled={isLoading} className="flex items-center">
@@ -208,7 +256,7 @@ const ProfileDisplayEdit = ({ user }) => {
             </Button>
           </>
         ) : (
-          <Button onClick={handleEdit} className="flex items-center bg-gray-700 hover:bg-gray-800 text-white">
+          <Button onClick={handleEdit} className="flex items-center bg-blue-600 hover:bg-blue-700 text-white px-6">
             <Pencil className="mr-2 h-4 w-4" /> Edit Profile
           </Button>
         )}

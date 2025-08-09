@@ -114,8 +114,8 @@ const Page = () => {
   );
 
   return (
-    <div className="bg-[#EAEFF8] w-full h-full overflow-y-scroll">
-      <div className="px-96 py-4 gap-5 flex flex-col">
+    <div className="bg-[#EAEFF8] w-full min-h-full">
+      <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 py-4 gap-5 flex flex-col">
         {/* Pass filter state and setters to SearchFilter */}
         <SearchFilter
           onSearch={(q, f) => {

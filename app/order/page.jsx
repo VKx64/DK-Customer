@@ -181,7 +181,7 @@ const OrderPage = () => {
               <div
                 key={order.id}
                 onClick={() => handleOrderClick(order)}
-                className={`cursor-pointer transition-all duration-200 ${selectedOrder?.id === order.id ? 'ring-2 ring-primary ring-offset-2' : 'hover:shadow-md'}`}
+                className={`cursor-pointer transition-all duration-200 rounded-xl overflow-hidden ${selectedOrder?.id === order.id ? 'ring-2 ring-primary ring-offset-2' : 'hover:shadow-md'}`}
               >
                 <OrderCard order={order} />
               </div>

@@ -24,10 +24,10 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased w-screen h-screen flex flex-col bg-[#EAEFF8]`}>
+        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col bg-[#EAEFF8]`}>
         <AuthProvider>
           {!isAuthPage && <NavBar />}
-          <main className="flex-1 w-full h-full">{children}</main>
+          <main className="flex-1">{children}</main>
           <Toaster />
         </AuthProvider>
       </body>
