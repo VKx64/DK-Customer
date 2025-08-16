@@ -2,7 +2,7 @@
 const nextConfig = {
   output: 'standalone',
   images: {
-    domains: ["dk-pb.rimuru.win", "zxky"],
+    domains: ["pb-dk.rimuru.win", "zxky"],
   },
 };
 
