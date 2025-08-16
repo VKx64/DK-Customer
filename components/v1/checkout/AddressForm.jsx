@@ -403,24 +403,46 @@ const AddressForm = ({ userId, onAddressChange, initialAddressId = null }) => {
   }
 
   return (
-    <div className="space-y-4">
-      <div>
-        <Label htmlFor="addressSelect">Shipping Address</Label>
+    <div className="space-y-4 w-full">
+      <div className="space-y-2">
+        <Label htmlFor="addressSelect" className="text-sm font-medium">Shipping Address</Label>
         <Select
           value={selectedAddressId}
           onValueChange={handleAddressSelect}
         >
-          <SelectTrigger id="addressSelect">
-            <SelectValue placeholder="Select shipping address" />
+          <SelectTrigger id="addressSelect" className="w-full h-auto min-h-[48px] py-3">
+            <SelectValue placeholder="Select shipping address">
+              {selectedAddressId && selectedAddressId !== 'add_new' && (
+                <div className="text-left w-full">
+                  <div className="font-medium text-sm truncate">
+                    {addresses.find(addr => addr.id === selectedAddressId)?.name}
+                  </div>
+                  <div className="text-xs text-muted-foreground truncate">
+                    {addresses.find(addr => addr.id === selectedAddressId)?.address}
+                  </div>
+                </div>
+              )}
+            </SelectValue>
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="w-full max-w-none min-w-[var(--radix-select-trigger-width)]">
             {addresses.map(address => (
-              <SelectItem key={address.id} value={address.id}>
-                {address.name} - {address.address}
+              <SelectItem key={address.id} value={address.id} className="py-3 px-3">
+                <div className="space-y-1 text-left w-full">
+                  <div className="font-medium text-sm">{address.name}</div>
+                  <div className="text-xs text-muted-foreground break-words overflow-hidden">
+                    {address.address.length > 80
+                      ? `${address.address.substring(0, 80)}...`
+                      : address.address
+                    }
+                  </div>
+                </div>
               </SelectItem>
             ))}
-            <SelectItem value="add_new">
-              + Add New Address
+            <SelectItem value="add_new" className="py-3 px-3 border-t">
+              <div className="flex items-center space-x-2 w-full">
+                <span className="text-primary">+</span>
+                <span className="font-medium">Add New Address</span>
+              </div>
             </SelectItem>
           </SelectContent>
         </Select>
@@ -428,7 +450,7 @@ const AddressForm = ({ userId, onAddressChange, initialAddressId = null }) => {
 
       {/* New Address Form */}
       {showAddForm && (
-        <Card className="mt-4">
+        <Card className="w-full">
           <CardContent className="pt-6">
             <div className="space-y-4">
               <h3 className="text-lg font-medium">New Shipping Address</h3>
@@ -637,11 +659,24 @@ const AddressForm = ({ userId, onAddressChange, initialAddressId = null }) => {
 
       {/* Display selected address details when an existing address is selected */}
       {selectedAddressId && selectedAddressId !== 'add_new' && (
-        <div className="mt-2 p-3 bg-muted/30 rounded-md text-sm">
-          <div className="font-medium">{addresses.find(addr => addr.id === selectedAddressId)?.name}</div>
-          <div>{addresses.find(addr => addr.id === selectedAddressId)?.address}</div>
-          <div>{addresses.find(addr => addr.id === selectedAddressId)?.city}, {addresses.find(addr => addr.id === selectedAddressId)?.zip_code}</div>
-          <div>{addresses.find(addr => addr.id === selectedAddressId)?.phone}</div>
+        <div className="w-full p-4 bg-background border border-border rounded-lg shadow-sm">
+          <div className="space-y-3 w-full">
+            <div className="flex items-center space-x-2 w-full">
+              <span className="text-primary">👤</span>
+              <span className="font-semibold text-sm flex-1">{addresses.find(addr => addr.id === selectedAddressId)?.name}</span>
+            </div>
+            <div className="flex items-start space-x-2 w-full">
+              <span className="text-muted-foreground mt-0.5">📍</span>
+              <div className="text-sm text-muted-foreground space-y-1 flex-1 min-w-0 w-full">
+                <p className="break-words leading-relaxed w-full">{addresses.find(addr => addr.id === selectedAddressId)?.address}</p>
+                <p className="break-words w-full">{addresses.find(addr => addr.id === selectedAddressId)?.city}, {addresses.find(addr => addr.id === selectedAddressId)?.zip_code}</p>
+              </div>
+            </div>
+            <div className="flex items-center space-x-2 w-full">
+              <span className="text-muted-foreground">📱</span>
+              <span className="text-sm text-muted-foreground break-all flex-1">{addresses.find(addr => addr.id === selectedAddressId)?.phone}</span>
+            </div>
+          </div>
         </div>
       )}
     </div>

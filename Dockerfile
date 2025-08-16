@@ -18,11 +18,17 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Copy .env file before building, as per your requirement for NEXT_PUBLIC_ variables
-COPY .env ./.env
+# Add your specific NEXT_PUBLIC_ environment variables
+ARG NEXT_PUBLIC_POCKETBASE_URL
+ARG NEXT_PUBLIC_SHOP_LATITUDE
+ARG NEXT_PUBLIC_SHOP_LONGITUDE
 
-# Telemetry is ENABLED by default. The line below would disable it if uncommented.
+# Set these as environment variables so Next.js can use them during build
+ENV NEXT_PUBLIC_POCKETBASE_URL=${NEXT_PUBLIC_POCKETBASE_URL}
+ENV NEXT_PUBLIC_SHOP_LATITUDE=${NEXT_PUBLIC_SHOP_LATITUDE}
+ENV NEXT_PUBLIC_SHOP_LONGITUDE=${NEXT_PUBLIC_SHOP_LONGITUDE}
 ENV NEXT_TELEMETRY_DISABLED 1
+
 RUN \
   if [ -f yarn.lock ]; then yarn build; \
   elif [ -f package-lock.json ]; then npm run build; \
@@ -35,8 +41,6 @@ RUN \
 FROM node:18-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV production
-
-# Telemetry is ENABLED by default. The line below would disable it if uncommented.
 ENV NEXT_TELEMETRY_DISABLED 1
 
 RUN addgroup --system --gid 1001 nodejs
@@ -44,9 +48,6 @@ RUN adduser --system --uid 1001 nextjs
 COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-
-# Copy .env file to the runner stage
-COPY --from=builder /app/.env ./.env
 
 USER nextjs
 EXPOSE 3000

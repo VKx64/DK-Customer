@@ -9,6 +9,7 @@ import { Separator } from '@/components/ui/separator'
 import { Checkbox } from '@/components/ui/checkbox'
 import { useAuth } from '@/contexts/AuthContext'
 import { getProductWithAllData } from '@/services/pocketbase/readProducts'
+import { getAllBranches } from '@/services/pocketbase/readBranches'
 import { pb } from '@/lib/pocketbase'
 import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -22,6 +23,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 const CartPage = () => {
   const { user, isUserLoading } = useAuth();
@@ -35,6 +43,9 @@ const CartPage = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [selectedAddress, setSelectedAddress] = useState(null);
   const [addressError, setAddressError] = useState(null);
+  const [branches, setBranches] = useState([]);
+  const [selectedBranch, setSelectedBranch] = useState(null);
+  const [branchError, setBranchError] = useState(null);
 
   const fetchCartFromDB = async (userId) => {
     try {
@@ -137,6 +148,25 @@ const CartPage = () => {
 
     fetchCartItems();
   }, [user, isUserLoading]);
+
+  // Fetch branches
+  useEffect(() => {
+    const fetchBranches = async () => {
+      try {
+        const branchesData = await getAllBranches();
+        setBranches(branchesData);
+
+        // Set default branch if available
+        if (branchesData.length > 0) {
+          setSelectedBranch(branchesData[0].id);
+        }
+      } catch (error) {
+        console.error("Error fetching branches:", error);
+      }
+    };
+
+    fetchBranches();
+  }, []);
 
   const handleQuantityChange = async (id, newQuantity) => {
     try {
@@ -253,6 +283,10 @@ const CartPage = () => {
         throw new Error("No products selected");
       }
 
+      if (!selectedBranch) {
+        throw new Error("Please select a branch for your order");
+      }
+
       let addressId = null;
       if (dbPaymentMethod === 'Cash On Delivery') {
         if (!selectedAddress) {
@@ -274,6 +308,7 @@ const CartPage = () => {
         mode_of_payment: dbPaymentMethod,
         address: addressId,
         delivery_fee: orderDetails.shipping || 0,
+        branch: selectedBranch,
       }, {
         requestKey: null
       });
@@ -290,11 +325,17 @@ const CartPage = () => {
     if (checkoutDetails.paymentMethod === 'cash_on_delivery') {
       setAddressError(null);
     }
+    setBranchError(null);
     setConfirmationOpen(true);
   };
 
   const processConfirmedCheckout = async () => {
     if (!pendingCheckout) return;
+
+    if (!selectedBranch) {
+      setBranchError("Please select a branch for your order");
+      return;
+    }
 
     if (pendingCheckout.paymentMethod === 'cash_on_delivery' && !selectedAddress) {
       setAddressError("Please select or add a delivery address");
@@ -349,6 +390,11 @@ const CartPage = () => {
     setAddressError(null);
   };
 
+  const handleBranchChange = (branchId) => {
+    setSelectedBranch(branchId);
+    setBranchError(null);
+  };
+
   if (loading || isUserLoading) {
     return (
       <div className='px-4 md:px-8 lg:px-16 xl:px-96 py-8'>
@@ -378,54 +424,127 @@ const CartPage = () => {
   return (
     <div className='px-4 md:px-8 lg:px-16 xl:px-96 py-8'>
       <AlertDialog open={confirmationOpen} onOpenChange={setConfirmationOpen}>
-        <AlertDialogContent className="max-h-[90vh] overflow-y-auto">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Confirm your order</AlertDialogTitle>
-            <AlertDialogDescription>
-              You are about to place an order for {selectedCount} item(s) with a total of ₱
-              {(pendingCheckout?.total || 0).toFixed(2)}.
+        <AlertDialogContent className="max-h-[90vh] max-w-[95vw] md:max-w-3xl overflow-y-auto">
+          <AlertDialogHeader className="space-y-3">
+            <AlertDialogTitle className="text-xl font-semibold">Confirm your order</AlertDialogTitle>
+            <AlertDialogDescription className="text-base text-muted-foreground">
+              You are about to place an order for <span className="font-medium text-foreground">{selectedCount} item(s)</span> with a total of <span className="font-bold text-foreground">₱{(pendingCheckout?.total || 0).toFixed(2)}</span>.
             </AlertDialogDescription>
           </AlertDialogHeader>
 
-          {pendingCheckout?.paymentMethod === 'cash_on_delivery' && (
-            <div className="my-4">
-              <h3 className="text-sm font-medium mb-2">
-                Delivery details:
-              </h3>
+          <div className="space-y-6 py-4">
+            {/* Branch Selection */}
+            <div className="space-y-4">
+              <div className="border-l-4 border-blue-500 pl-4">
+                <h3 className="text-sm font-semibold text-foreground mb-1">
+                  🏪 Select Branch
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  Choose which branch you'd like to process your order
+                </p>
+              </div>
 
-              <AddressForm
-                userId={user?.id}
-                onAddressChange={handleAddressChange}
-              />
+              <div className="space-y-2">
+                <Select value={selectedBranch} onValueChange={handleBranchChange}>
+                  <SelectTrigger className="w-full h-14 px-4 bg-gray-50/50 border-2 hover:bg-gray-50 focus:bg-white focus:border-primary/30 transition-all duration-200">
+                    <SelectValue placeholder="Select a branch" className="text-muted-foreground" />
+                  </SelectTrigger>
+                  <SelectContent className="min-w-[var(--radix-select-trigger-width)] bg-white border-2 shadow-lg">
+                    {branches.map((branch) => (
+                      <SelectItem
+                        key={branch.id}
+                        value={branch.id}
+                        className="py-4 px-4 hover:bg-gray-50 focus:bg-gray-50 cursor-pointer"
+                      >
+                        <span className="font-semibold text-gray-900">{branch.branch_name}</span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
 
-              {addressError && (
-                <p className="text-destructive text-sm mt-2">{addressError}</p>
-              )}
-
-              <div className="text-sm mt-4 text-muted-foreground">
-                Delivery fee: ₱{pendingCheckout?.shipping.toFixed(2)}
+                {branchError && (
+                  <div className="flex items-center space-x-2 p-3 bg-destructive/10 border border-destructive/20 rounded-md">
+                    <span className="text-destructive text-sm">⚠️</span>
+                    <p className="text-destructive text-sm font-medium">{branchError}</p>
+                  </div>
+                )}
               </div>
             </div>
-          )}
 
-          {pendingCheckout?.paymentMethod === 'in_store' && (
-            <div className="my-4 text-sm">
-              <p>You'll need to pick up your items at our store:</p>
-              <p className="mt-2 p-3 bg-muted/30 rounded-md">
-                123 Main Street, Davao City<br />
-                Open Monday - Saturday, 9am to 6pm
-              </p>
-            </div>
-          )}
+            {pendingCheckout?.paymentMethod === 'cash_on_delivery' && (
+              <div className="space-y-4">
+                <div className="border-l-4 border-primary pl-4">
+                  <h3 className="text-sm font-semibold text-foreground mb-1">
+                    📍 Delivery Details
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    Please select or add your shipping address
+                  </p>
+                </div>
 
-          <AlertDialogFooter className="mt-4">
-            <AlertDialogCancel disabled={isProcessing}>Cancel</AlertDialogCancel>
+                <div className="bg-muted/30 rounded-lg p-6 w-full">
+                  <AddressForm
+                    userId={user?.id}
+                    onAddressChange={handleAddressChange}
+                  />
+                </div>
+
+                {addressError && (
+                  <div className="flex items-center space-x-2 p-4 bg-destructive/10 border border-destructive/20 rounded-md w-full">
+                    <span className="text-destructive text-sm">⚠️</span>
+                    <p className="text-destructive text-sm font-medium">{addressError}</p>
+                  </div>
+                )}
+
+                <div className="flex items-center justify-between p-4 bg-muted/20 rounded-md border w-full">
+                  <span className="text-sm font-medium">🚚 Delivery Fee:</span>
+                  <span className="font-semibold text-primary">₱{pendingCheckout?.shipping.toFixed(2)}</span>
+                </div>
+              </div>
+            )}
+
+            {pendingCheckout?.paymentMethod === 'in_store' && (
+              <div className="space-y-4">
+                <div className="border-l-4 border-blue-500 pl-4">
+                  <h3 className="text-sm font-semibold text-foreground mb-1">
+                    🏪 Store Pickup
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    Please collect your items from our store
+                  </p>
+                </div>
+
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 space-y-3 w-full">
+                  <div className="flex items-center space-x-2">
+                    <span className="text-blue-600">📍</span>
+                    <span className="font-medium text-blue-800">Store Location</span>
+                  </div>
+                  <p className="text-sm text-blue-700 pl-6">
+                    123 Main Street, Davao City
+                  </p>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-blue-600">🕒</span>
+                    <span className="text-sm text-blue-700">Monday - Saturday, 9am to 6pm</span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <AlertDialogFooter className="border-t pt-6 mt-6 space-x-3">
+            <AlertDialogCancel
+              disabled={isProcessing}
+              className="px-6 py-2"
+            >
+              Cancel
+            </AlertDialogCancel>
             <AlertDialogAction
               disabled={isProcessing}
               onClick={(e) => {
                 e.preventDefault();
                 processConfirmedCheckout();
               }}
+              className="px-6 py-2 bg-primary hover:bg-primary/90 text-primary-foreground"
             >
               {isProcessing ? (
                 <>
@@ -433,7 +552,10 @@ const CartPage = () => {
                   Processing...
                 </>
               ) : (
-                "Yes, place my order"
+                <>
+                  <span className="mr-2">✓</span>
+                  Yes, place my order
+                </>
               )}
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -500,6 +622,10 @@ const CartPage = () => {
             subtotal={subtotal}
             disabled={selectedCount === 0}
             onCheckout={handleCheckout}
+            branches={branches}
+            selectedBranch={selectedBranch}
+            onBranchChange={handleBranchChange}
+            branchError={branchError}
           />
         </div>
       )}

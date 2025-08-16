@@ -6,6 +6,13 @@ import { Separator } from '@/components/ui/separator';
 import { Loader2, MapPin, CreditCard, Home, Store } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 /**
  * Calculates distance between two coordinates using Haversine formula
@@ -66,7 +73,11 @@ const CartSummary = ({
   selectedCount = 0,
   subtotal = 0,
   disabled = true,
-  onCheckout
+  onCheckout,
+  branches = [],
+  selectedBranch = null,
+  onBranchChange,
+  branchError = null
 }) => {
   // State variables
   const [userLocation, setUserLocation] = useState(null);
@@ -190,6 +201,40 @@ const CartSummary = ({
       <h2 className='text-lg font-bold mb-4'>Order Summary</h2>
 
       <div className='space-y-5'>
+        {/* Branch Selection */}
+        <div className="space-y-3">
+          <h3 className="text-sm font-medium flex items-center">
+            <Store className="h-4 w-4 mr-2 text-primary" />
+            Select Branch
+          </h3>
+
+          <Select value={selectedBranch} onValueChange={onBranchChange}>
+            <SelectTrigger className="h-14 px-4 bg-gray-50/50 border-2 hover:bg-gray-50 focus:bg-white focus:border-primary/30 transition-all duration-200">
+              <SelectValue placeholder="Choose a branch" className="text-muted-foreground" />
+            </SelectTrigger>
+            <SelectContent className="min-w-[var(--radix-select-trigger-width)] bg-white border-2 shadow-lg">
+              {branches.map((branch) => (
+                <SelectItem
+                  key={branch.id}
+                  value={branch.id}
+                  className="py-4 px-4 hover:bg-gray-50 focus:bg-gray-50 cursor-pointer"
+                >
+                  <span className="font-semibold text-gray-900">{branch.branch_name}</span>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {branchError && (
+            <div className="flex items-center space-x-2 p-2 bg-destructive/10 border border-destructive/20 rounded-md">
+              <span className="text-destructive text-xs">⚠️</span>
+              <p className="text-destructive text-xs font-medium">{branchError}</p>
+            </div>
+          )}
+        </div>
+
+        <Separator />
+
         {/* Order details section */}
         <div className='space-y-3 text-sm'>
           {/* Subtotal */}
