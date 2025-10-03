@@ -189,14 +189,8 @@ const ProfileDisplayEdit = ({ user }) => {
                   <span className="font-medium">{user.emailVisibility ? 'Public' : 'Private'}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Last Updated:</span>
-                  <span className="font-medium">{new Date(user.updated).toLocaleDateString()}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Verification:</span>
-                  <span className={`font-medium ${user.verified ? 'text-green-600' : 'text-orange-600'}`}>
-                    {user.verified ? 'Verified' : 'Unverified'}
-                  </span>
+                  <span className="text-gray-600">Account Created:</span>
+                  <span className="font-medium">{new Date(user.created).toLocaleDateString()}</span>
                 </div>
               </div>
             </div>

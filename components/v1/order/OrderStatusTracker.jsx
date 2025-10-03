@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { CheckCircle, Clock, Truck, Package, Store, AlertTriangle, X } from 'lucide-react';
+import { CheckCircle, Clock, Truck, Package, Store, AlertTriangle, X, XCircle } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 
@@ -76,11 +76,20 @@ const OrderStatusTracker = ({ order }) => {
       icon: X,
       iconColor: "text-red-500",
       bgColor: "bg-red-50"
+    },
+    {
+      key: "cancelled",
+      label: "Order Cancelled",
+      description: "Your order has been cancelled",
+      icon: XCircle,
+      iconColor: "text-orange-500",
+      bgColor: "bg-orange-50"
     }
   ];
 
   // Determine which flow to use based on order status and payment method
   const isDeclined = order.status === "Declined";
+  const isCancelled = order.status === "cancelled";
   const isCashOnDelivery = order.paymentMethod === "Cash On Delivery";
 
   let statusFlow = [];
@@ -88,6 +97,9 @@ const OrderStatusTracker = ({ order }) => {
   if (isDeclined) {
     // Declined flow only shows Pending and Declined
     statusFlow = ["Pending", "Declined"];
+  } else if (isCancelled) {
+    // Cancelled flow only shows Pending and Cancelled
+    statusFlow = ["Pending", "cancelled"];
   } else if (isCashOnDelivery) {
     // COD flow includes delivery
     statusFlow = [
@@ -115,6 +127,8 @@ const OrderStatusTracker = ({ order }) => {
 
   if (isDeclined) {
     currentStatusIndex = 1; // Declined is always the last status in the declined flow
+  } else if (isCancelled) {
+    currentStatusIndex = 1; // Cancelled is always the last status in the cancelled flow
   } else {
     // Find the current status index in the flow
     currentStatusIndex = statusFlow.findIndex(status => status === currentStatus);
@@ -156,6 +170,30 @@ const OrderStatusTracker = ({ order }) => {
                 Please contact us at support@daikin-shop.com for more information.
               </p>
             </div>
+          </>
+        ) : isCancelled ? (
+          <>
+            <div className="flex items-start">
+              <div className={cn("flex items-center justify-center w-10 h-10 rounded-full bg-orange-50 mt-0.5 flex-shrink-0")}>
+                <XCircle className="h-5 w-5 text-orange-500" />
+              </div>
+              <div className="ml-4">
+                <h3 className="text-base font-medium text-orange-700">Order Cancelled</h3>
+                <p className="text-sm text-muted-foreground">
+                  Your order has been cancelled successfully.
+                </p>
+              </div>
+            </div>
+
+            {order.cancellationReason && (
+              <div className="border border-orange-200 rounded-lg p-4 text-sm bg-orange-50">
+                <p className="font-medium mb-2">Cancellation Reason:</p>
+                <p className="text-muted-foreground italic">{order.cancellationReason}</p>
+                <p className="mt-3 text-xs text-muted-foreground">
+                  If you have any questions, please contact us at support@daikin-shop.com
+                </p>
+              </div>
+            )}
           </>
         ) : (
           <div className="relative">

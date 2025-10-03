@@ -1,10 +1,14 @@
 "use client";
 import React, { useState, useEffect, useMemo, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import SearchFilter from "../components/v1/SearchFilter";
 import ProductCard from "../components/v1/ProductCard";
 import { getProductsWithAllData } from "../services/pocketbase/readProducts";
+import { Badge } from "@/components/ui/badge";
+import { X } from "lucide-react";
 
 const Page = () => {
+  const searchParams = useSearchParams();
   // State for all products (fetched once)
   const [allProducts, setAllProducts] = useState([]);
   // State for filtered products (displayed to user)
@@ -15,6 +19,15 @@ const Page = () => {
   // Add state for search query and filters
   const [query, setQuery] = useState("");
   const [filters, setFilters] = useState({ price: "All", category: "All" });
+  const [compressorTypeFilter, setCompressorTypeFilter] = useState(null);
+
+  // Check for compressor type in URL on mount
+  useEffect(() => {
+    const compressorType = searchParams.get("compressorType");
+    if (compressorType) {
+      setCompressorTypeFilter(compressorType);
+    }
+  }, [searchParams]);
 
   // Fetch all products on component mount (only once)
   useEffect(() => {
@@ -39,7 +52,7 @@ const Page = () => {
   // Client-side search and filter function
   const handleSearch = useCallback(
     (query, filters) => {
-      // Always filter by price and category, even if search is empty
+      // Always filter by price, category, and compressor type
       const filtered = allProducts.filter((product) => {
         let matchesSearch = true;
         if (query && query.trim() !== "") {
@@ -50,6 +63,7 @@ const Page = () => {
 
         let matchesPrice = true;
         let matchesCategory = true;
+        let matchesCompressorType = true;
 
         // Filter by price range
         if (filters.price !== "All") {
@@ -78,18 +92,24 @@ const Page = () => {
               .includes(categoryValue.toLowerCase());
         }
 
-        return matchesSearch && matchesPrice && matchesCategory;
+        // Filter by compressor type
+        if (compressorTypeFilter) {
+          matchesCompressorType =
+            product.specifications?.compressorType === compressorTypeFilter;
+        }
+
+        return matchesSearch && matchesPrice && matchesCategory && matchesCompressorType;
       });
 
       setFilteredProducts(filtered);
     },
-    [allProducts]
+    [allProducts, compressorTypeFilter]
   );
 
-  // Update filtered products whenever query or filters change
+  // Update filtered products whenever query, filters, or compressor type change
   useEffect(() => {
     handleSearch(query, filters);
-  }, [query, filters, allProducts, handleSearch]);
+  }, [query, filters, allProducts, handleSearch, compressorTypeFilter]);
 
   // Map PocketBase products to the format expected by ProductCard
   const formatProduct = useMemo(
@@ -125,6 +145,25 @@ const Page = () => {
           query={query}
           filters={filters}
         />
+
+        {/* Show active compressor type filter */}
+        {compressorTypeFilter && (
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">Filtered by:</span>
+            <Badge variant="secondary" className="text-sm px-3 py-1">
+              {compressorTypeFilter}
+              <button
+                onClick={() => {
+                  setCompressorTypeFilter(null);
+                  window.history.pushState({}, "", "/");
+                }}
+                className="ml-2 hover:bg-destructive/20 rounded-full p-0.5"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </Badge>
+          </div>
+        )}
 
         {/* Product Display Section */}
         {loading ? (

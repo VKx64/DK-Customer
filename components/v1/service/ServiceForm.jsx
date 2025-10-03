@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, AirVent, Home, Monitor, Tv } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -20,10 +20,9 @@ import { toast } from "sonner";
 import { pb } from "@/lib/pocketbase";
 
 const steps = [
-  "Device/Equipment",
   "Location & Property",
   "Unit Details",
-  "Date & Time", // Add this line
+  "Date & Time",
 ];
 
 const unitDetails = [
@@ -38,14 +37,14 @@ const unitDetails = [
 const propertyTypes = ["Residential", "Commercial", "Industrial"];
 
 const deviceTypes = {
-  Airconditioner: ["Window", "Split-type", "Cassette", "Portable"],
+  Airconditioner: ["Window", "Split-type", "Cassette", "Portable", "Dual inverter", "Inverter"],
   Appliance: ["Refrigerator", "Washing Machine", "Microwave", "Oven"],
   Computer: ["Desktop", "Laptop", "All-in-One"],
   "Flatscreen TV": ["LED", "OLED", "QLED", "Plasma", "LCD"],
 };
 
 const deviceBrands = {
-  Airconditioner: ["Daikin", "Carrier", "Panasonic", "LG", "Samsung"],
+  Airconditioner: ["Daikin"],
   Appliance: ["Daikin", "LG", "Samsung", "Whirlpool", "Panasonic"],
   Computer: ["Acer", "Asus", "Dell", "HP", "Lenovo"],
   "Flatscreen TV": ["Sony", "Samsung", "LG", "TCL", "Panasonic"],
@@ -61,7 +60,7 @@ const ServiceForm = ({ user }) => {
   const [step, setStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
-    product: "",
+    product: "Airconditioner",
     service_city: "",
     service_barangay: "",
     property_type: "",
@@ -79,7 +78,138 @@ const ServiceForm = ({ user }) => {
   });
   const [previewUrl, setPreviewUrl] = useState("");
 
+  // PSGC API State
+  const [regions, setRegions] = useState([]);
+  const [provinces, setProvinces] = useState([]);
+  const [cities, setCities] = useState([]);
+  const [barangays, setBarangays] = useState([]);
+  const [loadingState, setLoadingState] = useState({
+    regions: false,
+    provinces: false,
+    cities: false,
+    barangays: false,
+  });
+  const [selectedRegion, setSelectedRegion] = useState("");
+  const [selectedProvince, setSelectedProvince] = useState("");
+  const [selectedCity, setSelectedCity] = useState("");
+
   const today = new Date().toISOString().split("T")[0];
+
+  // --- PSGC API Fetching Logic --- START ---
+  const fetchWithLoading = useCallback(async (url, type) => {
+    setLoadingState((prev) => ({ ...prev, [type]: true }));
+    try {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`Failed to fetch ${type}`);
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error(`Error fetching ${type}:`, error);
+      toast.error(`Failed to load ${type}`);
+      return [];
+    } finally {
+      setLoadingState((prev) => ({ ...prev, [type]: false }));
+    }
+  }, []);
+
+  // Fetch Regions on mount
+  useEffect(() => {
+    const loadRegions = async () => {
+      const data = await fetchWithLoading("https://psgc.cloud/api/regions", "regions");
+      setRegions(data);
+    };
+    loadRegions();
+  }, [fetchWithLoading]);
+
+  // Fetch Provinces when region changes
+  useEffect(() => {
+    if (!selectedRegion) {
+      setProvinces([]);
+      setCities([]);
+      setBarangays([]);
+      setSelectedProvince("");
+      setSelectedCity("");
+      setFormData((prev) => ({ ...prev, service_city: "", service_barangay: "" }));
+      return;
+    }
+
+    const loadProvinces = async () => {
+      const data = await fetchWithLoading(
+        `https://psgc.cloud/api/regions/${selectedRegion}/provinces`,
+        "provinces"
+      );
+      setProvinces(data);
+      setCities([]);
+      setBarangays([]);
+      setSelectedProvince("");
+      setSelectedCity("");
+      setFormData((prev) => ({ ...prev, service_city: "", service_barangay: "" }));
+    };
+    loadProvinces();
+  }, [selectedRegion, fetchWithLoading]);
+
+  // Fetch Cities when province changes
+  useEffect(() => {
+    if (!selectedProvince) {
+      setCities([]);
+      setBarangays([]);
+      setSelectedCity("");
+      setFormData((prev) => ({ ...prev, service_city: "", service_barangay: "" }));
+      return;
+    }
+
+    const loadCities = async () => {
+      const data = await fetchWithLoading(
+        `https://psgc.cloud/api/provinces/${selectedProvince}/cities-municipalities`,
+        "cities"
+      );
+      setCities(data);
+      setBarangays([]);
+      setSelectedCity("");
+      setFormData((prev) => ({ ...prev, service_city: "", service_barangay: "" }));
+    };
+    loadCities();
+  }, [selectedProvince, fetchWithLoading]);
+
+  // Fetch Barangays when city changes
+  useEffect(() => {
+    if (!selectedCity) {
+      setBarangays([]);
+      setFormData((prev) => ({ ...prev, service_barangay: "" }));
+      return;
+    }
+
+    const loadBarangays = async () => {
+      setLoadingState((prev) => ({ ...prev, barangays: true }));
+      try {
+        let data = [];
+        try {
+          const response = await fetch(
+            `https://psgc.cloud/api/cities-municipalities/${selectedCity}/barangays`
+          );
+          if (!response.ok) throw new Error("Direct fetch failed");
+          data = await response.json();
+        } catch (error) {
+          console.warn("Direct barangay fetch failed, trying alternative...");
+          const altResponse = await fetch(
+            `https://psgc.cloud/api/barangays?city-municipality=${selectedCity}`
+          );
+          if (!altResponse.ok) throw new Error("Alternative fetch failed");
+          data = await altResponse.json();
+        }
+        setBarangays(data);
+        setFormData((prev) => ({ ...prev, service_barangay: "" }));
+      } catch (error) {
+        console.error("Error fetching barangays:", error);
+        toast.error("Failed to load barangays");
+        setBarangays([]);
+      } finally {
+        setLoadingState((prev) => ({ ...prev, barangays: false }));
+      }
+    };
+    loadBarangays();
+  }, [selectedCity]);
+  // --- PSGC API Fetching Logic --- END ---
 
   // Handlers
   const handleInputChange = (e) => {
@@ -110,12 +240,8 @@ const ServiceForm = ({ user }) => {
 
   const handleNext = () => {
     // Add validation per step if needed
-    if (step === 0 && !formData.product) {
-      toast.error("Please select a device/equipment");
-      return;
-    }
     if (
-      step === 1 &&
+      step === 0 &&
       (!formData.service_city ||
         !formData.service_barangay ||
         !formData.property_type)
@@ -123,7 +249,7 @@ const ServiceForm = ({ user }) => {
       toast.error("Please complete all location and property fields");
       return;
     }
-    if (step === 2) {
+    if (step === 1) {
       if (!formData.unit_detail) {
         toast.error("Please select a unit detail");
         return;
@@ -137,8 +263,8 @@ const ServiceForm = ({ user }) => {
         return;
       }
     }
-    // In handleNext, add validation for step 3
-    if (step === 3 && !formData.requested_date) {
+    // In handleNext, add validation for step 2
+    if (step === 2 && !formData.requested_date) {
       toast.error("Please select a date for the service");
       return;
     }
@@ -179,7 +305,7 @@ const ServiceForm = ({ user }) => {
       await pb.collection("service_request").create(formDataObj);
       toast.success("Service request submitted successfully!");
       setFormData({
-        product: "",
+        product: "Airconditioner",
         service_city: "",
         service_barangay: "",
         property_type: "",
@@ -196,6 +322,9 @@ const ServiceForm = ({ user }) => {
         additional_requests: [],
       });
       setPreviewUrl("");
+      setSelectedRegion("");
+      setSelectedProvince("");
+      setSelectedCity("");
       setStep(0);
     } catch (error) {
       toast.error(error.message || "Failed to submit service request");
@@ -225,89 +354,116 @@ const ServiceForm = ({ user }) => {
     switch (step) {
       case 0:
         return (
-          <div className="space-y-2">
-            <Label className="text-base font-medium">
-              Device/Equipment <span className="text-destructive">*</span>
-            </Label>
-            <div className="grid grid-cols-2 gap-4">
-              {[
-                {
-                  label: "Airconditioner",
-                  icon: <AirVent className="w-5 h-5 mr-2" />,
-                },
-                {
-                  label: "Appliance",
-                  icon: <Home className="w-5 h-5 mr-2" />,
-                },
-                {
-                  label: "Computer",
-                  icon: <Monitor className="w-5 h-5 mr-2" />,
-                },
-                {
-                  label: "Flatscreen TV",
-                  icon: <Tv className="w-5 h-5 mr-2" />,
-                },
-              ].map((option) => (
-                <button
-                  type="button"
-                  key={option.label}
-                  className={`flex items-center border rounded-md py-3 px-2 text-sm font-medium transition ${
-                    formData.product === option.label
-                      ? "border-primary bg-primary/10"
-                      : "border-muted bg-background"
-                  }`}
-                  onClick={() =>
-                    setFormData((prev) => ({ ...prev, product: option.label }))
-                  }
-                >
-                  {option.icon}
-                  {option.label}
-                </button>
-              ))}
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="region" className="text-base font-medium">
+                Region <span className="text-destructive">*</span>
+              </Label>
+              <select
+                id="region"
+                name="region"
+                className="w-full border rounded-md px-3 py-2"
+                value={selectedRegion}
+                onChange={(e) => setSelectedRegion(e.target.value)}
+                required
+                disabled={loadingState.regions}
+              >
+                <option value="">
+                  {loadingState.regions ? "Loading regions..." : "Select Region"}
+                </option>
+                {regions.map((region) => (
+                  <option key={region.code} value={region.code}>
+                    {region.name}
+                  </option>
+                ))}
+              </select>
             </div>
-          </div>
-        );
-      case 1:
-        return (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="province" className="text-base font-medium">
+                Province <span className="text-destructive">*</span>
+              </Label>
+              <select
+                id="province"
+                name="province"
+                className="w-full border rounded-md px-3 py-2"
+                value={selectedProvince}
+                onChange={(e) => setSelectedProvince(e.target.value)}
+                required
+                disabled={!selectedRegion || loadingState.provinces}
+              >
+                <option value="">
+                  {loadingState.provinces
+                    ? "Loading provinces..."
+                    : selectedRegion
+                    ? "Select Province"
+                    : "Select a region first"}
+                </option>
+                {provinces.map((province) => (
+                  <option key={province.code} value={province.code}>
+                    {province.name}
+                  </option>
+                ))}
+              </select>
+            </div>
             <div className="space-y-2">
               <Label htmlFor="service_city" className="text-base font-medium">
-                Service City <span className="text-destructive">*</span>
+                City/Municipality <span className="text-destructive">*</span>
               </Label>
               <select
                 id="service_city"
                 name="service_city"
                 className="w-full border rounded-md px-3 py-2"
-                value={formData.service_city || ""}
-                onChange={handleInputChange}
+                value={selectedCity}
+                onChange={(e) => {
+                  const cityCode = e.target.value;
+                  const cityName = cities.find((c) => c.code === cityCode)?.name || "";
+                  setSelectedCity(cityCode);
+                  setFormData((prev) => ({ ...prev, service_city: cityName }));
+                }}
                 required
+                disabled={!selectedProvince || loadingState.cities}
               >
-                <option value="">Select City</option>
-                <option value="Makati">Makati</option>
-                <option value="Taguig">Taguig</option>
-                <option value="Pasig">Pasig</option>
-                <option value="Quezon City">Quezon City</option>
+                <option value="">
+                  {loadingState.cities
+                    ? "Loading cities..."
+                    : selectedProvince
+                    ? "Select City/Municipality"
+                    : "Select a province first"}
+                </option>
+                {cities.map((city) => (
+                  <option key={city.code} value={city.code}>
+                    {city.name}
+                  </option>
+                ))}
               </select>
             </div>
             <div className="space-y-2">
-              <Label
-                htmlFor="service_barangay"
-                className="text-base font-medium"
-              >
-                Service Barangay <span className="text-destructive">*</span>
+              <Label htmlFor="service_barangay" className="text-base font-medium">
+                Barangay <span className="text-destructive">*</span>
               </Label>
               <select
                 id="service_barangay"
                 name="service_barangay"
                 className="w-full border rounded-md px-3 py-2"
                 value={formData.service_barangay || ""}
-                onChange={handleInputChange}
+                onChange={(e) => {
+                  setFormData((prev) => ({ ...prev, service_barangay: e.target.value }));
+                }}
                 required
+                disabled={!selectedCity || loadingState.barangays}
               >
-                <option value="">Select Barangay</option>
-                <option value="Barangay 1">Barangay 1</option>
-                <option value="Barangay 2">Barangay 2</option>
-                <option value="Barangay 3">Barangay 3</option>
+                <option value="">
+                  {loadingState.barangays
+                    ? "Loading barangays..."
+                    : selectedCity
+                    ? "Select Barangay"
+                    : "Select a city first"}
+                </option>
+                {barangays.map((barangay) => (
+                  <option key={barangay.code} value={barangay.name}>
+                    {barangay.name}
+                  </option>
+                ))}
               </select>
             </div>
             <div className="space-y-2">
@@ -332,7 +488,7 @@ const ServiceForm = ({ user }) => {
             </div>
           </div>
         );
-      case 2:
+      case 1:
         return (
           <div className="space-y-6">
             <div>
@@ -532,7 +688,7 @@ const ServiceForm = ({ user }) => {
             )}
           </div>
         );
-      case 3:
+      case 2:
         // Generate next 7 days for selection
         const days = Array.from({ length: 7 }, (_, i) => {
           const date = new Date();
@@ -600,11 +756,10 @@ const ServiceForm = ({ user }) => {
     <Card className="shadow-md">
       <CardHeader className="bg-primary/5">
         <CardTitle className="text-2xl font-bold">
-          Electronic Service Request
+          Air Conditioner Service Request
         </CardTitle>
         <CardDescription>
-          Request repair, maintenance or consultation for your electronic
-          equipment
+          Request repair, maintenance, installation or consultation for your Daikin air conditioner
         </CardDescription>
       </CardHeader>
       <CardContent className="pt-6">
@@ -630,30 +785,6 @@ const ServiceForm = ({ user }) => {
           </div>
           {/* Step Content */}
           <div className="mb-6">{renderStep()}</div>
-
-          {step === 2 && (
-            <div className="mb-6 mt-2">
-              <div className="border rounded-lg p-4 flex flex-col md:flex-row items-center bg-white shadow-sm">
-                <div className="flex-1">
-                  <span className="font-semibold text-primary block mb-1">
-                    View Pricing
-                  </span>
-                  <span className="text-sm text-muted-foreground">
-                    {`Know more about our ${
-                      formData.unit_detail?.toLowerCase() || "service"
-                    } fees, inclusions and exclusions.`}
-                  </span>
-                </div>
-                <Button
-                  type="button"
-                  className="mt-3 md:mt-0 md:ml-4"
-                  onClick={() => window.open("/pricing", "_blank")}
-                >
-                  View Pricing
-                </Button>
-              </div>
-            </div>
-          )}
 
           {/* Navigation Buttons */}
           <div className="flex justify-between">

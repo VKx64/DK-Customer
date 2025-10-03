@@ -7,12 +7,14 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { ChevronDown, ChevronRight, Package, Truck, CalendarClock } from 'lucide-react';
 import Image from 'next/image';
+import CancelOrderDialog from './CancelOrderDialog';
+import RequestServiceDialog from './RequestServiceDialog';
 
 /**
  * OrderCard Component
  * Displays a single order with expandable details
  */
-const OrderCard = ({ order }) => {
+const OrderCard = ({ order, onOrderCancelled, user }) => {
   const [expanded, setExpanded] = useState(false);
 
   // Toggle expansion state of this order card
@@ -32,6 +34,18 @@ const OrderCard = ({ order }) => {
       default:
         return <Package className="h-4 w-4" />;
     }
+  };
+
+  // Determine if the order can be cancelled
+  // Orders can be cancelled if they are not yet shipped (before on_the_way status)
+  const canCancelOrder = () => {
+    const nonCancellableStatuses = ['on_the_way', 'completed', 'cancelled', 'Declined'];
+    return !nonCancellableStatuses.includes(order.status);
+  };
+
+  // Determine if user can request service (only for completed orders)
+  const canRequestService = () => {
+    return order.status === 'completed';
   };
 
   return (
@@ -131,7 +145,7 @@ const OrderCard = ({ order }) => {
         )}
       </CardContent>
 
-      <CardFooter>
+      <CardFooter className="flex flex-col sm:flex-row gap-2">
         {!expanded && (
           <Button
             variant="outline"
@@ -141,6 +155,18 @@ const OrderCard = ({ order }) => {
           >
             View Order Details
           </Button>
+        )}
+        {expanded && canCancelOrder() && (
+          <CancelOrderDialog
+            order={order}
+            onOrderCancelled={onOrderCancelled}
+          />
+        )}
+        {expanded && canRequestService() && user && (
+          <RequestServiceDialog
+            order={order}
+            user={user}
+          />
         )}
       </CardFooter>
     </Card>
