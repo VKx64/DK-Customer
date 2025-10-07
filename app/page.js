@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useCallback, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import SearchFilter from "../components/v1/SearchFilter";
 import ProductCard from "../components/v1/ProductCard";
@@ -7,7 +7,7 @@ import { getProductsWithAllData } from "../services/pocketbase/readProducts";
 import { Badge } from "@/components/ui/badge";
 import { X } from "lucide-react";
 
-const Page = () => {
+const PageContent = () => {
   const searchParams = useSearchParams();
   // State for all products (fetched once)
   const [allProducts, setAllProducts] = useState([]);
@@ -189,6 +189,19 @@ const Page = () => {
         )}
       </div>
     </div>
+  );
+};
+
+// Main Page component with Suspense boundary
+const Page = () => {
+  return (
+    <Suspense fallback={
+      <div className="bg-[#EAEFF8] w-full min-h-screen flex justify-center items-center">
+        <p className="text-gray-600">Loading...</p>
+      </div>
+    }>
+      <PageContent />
+    </Suspense>
   );
 };
 
